@@ -3,6 +3,7 @@ import datetime
 import re
 import urllib.request, urllib.parse, urllib.error
 import os
+import shutil
 
 # get latest forex rate
 def latest_forex(base, target):
@@ -48,7 +49,7 @@ Made with spirit of financial independency by Tianci in Sept 2020;
             for fx in forex_list:
                 if user_inp3 == fx: in_list = True
             if in_list == False: print("【你的输入不在列表中，请重新输入】")
-        json_dict = {"easp":[], "projects":[], "base_cur":user_inp3}
+        json_dict = {"easp":[], "projects":[], "planning":[], "base_cur":user_inp3, "lan":"CN"} # easp: earning and spending
         memo_write.write(json.dumps(json_dict))
         memo_write.close()
     print(mark)
@@ -314,7 +315,7 @@ def total_cal(s,e):
         num_iter = len(json_loads["easp"])
     print("【", sd, "——", ed,"】", sep="")
     if s == e:
-        print("余额：", round(json_loads["easp"][target_from].get("balance"), 2), base_cur)
+        print("【余额：", round(json_loads["easp"][target_from].get("balance"), 2)," ", base_cur,"】", sep="")
     else:
         sb = json_loads["easp"][target_from].get("balance")
         eb = json_loads["easp"][target_upto].get("balance")
@@ -354,7 +355,7 @@ def total_cal(s,e):
             perday = kvtot[1]/int(duration[0])
             if kvtot[0] == "食物":
                 eg_num = kvtot[1]/tot_totsp
-            print("    ","【其中"," ",kvtot[0]," ","一共",int(kvtot[1])," ","平均每月",int(perday*30)," ","占总支出的",per,"】",sep="")
+            print("    ","其中"," ",kvtot[0]," ","一共",int(kvtot[1])," ","平均每月",int(perday*30)," ","占总支出的",per,sep="")
     try:
         print("    ","你的恩格尔系数为：",round(eg_num,3))
     except:pass
@@ -373,42 +374,121 @@ def total_cal(s,e):
         if float(kvtot[1]) > 0:
             per = str(int(kvtot[1]/tot_totea*100)) + "%"
             perday = kvtot[1]/int(duration[0])
-            print("    ","【其中"," ",kvtot[0]," ","一共",int(kvtot[1])," ","平均每月",int(perday*30)," ","占总收入的",per,"】",sep="")
+            print("    ","其中"," ",kvtot[0]," ","一共",int(kvtot[1])," ","平均每月",int(perday*30)," ","占总收入的",per,sep="")
     # get note
     note = json_loads["easp"][target_upto].get("note")
     if note == None: note = "无（请在记录时间块时添加备注）"
     print("【过去的你给你发来信息：】")
     print("    ",note)
 
+def if_date(date):
+    try:
+        datetime.datetime.strptime(date, "%Y-%m-%d")
+        return True
+    except:
+        return False
+
+# record or delte plan
+def edit_plan(inp):
+    # yooooooo new feature
+    today = datetime.datetime.today()
+    if inp == "+":
+        plan_dict = {}
+        for t in range(3):
+            if t == 0:
+                print("【请输入一个未来的日期：】")
+            if t == 1:
+                print("【请输入计划块名称：】")
+            if t == 2:
+                print("【请输入数额（正数为计划收入，负数为计划支出）】：")
+            while True:
+                user_input = input()
+                if t == 0 and if_date(user_input):
+                    the_date = datetime.datetime.strptime(user_input, "%Y-%m-%d")
+                    if today <= the_date:
+                        the_date = the_date.strftime("%Y-%m-%d")
+                        plan_dict["date"] = the_date
+                        break
+                    else:
+                        print("【请输入今天及以后的日期】")
+                elif t == 0:
+                    print("【无效的日期输入，请重试】")
+                if t == 1:
+                    plan_dict["plan"] = user_input
+                    break
+                if t == 2 and not re.search("\D", user_input[1:]):
+                    amt = float(user_input)
+                    plan_dict["amount"] = amt
+                    break
+                elif t == 2:
+                    print("【请输入数字】")
+        json_loads["planning"].append(plan_dict)
+    # it deletes the wrong record
+    else:
+        json_loads["planning"].pop(int(inp)-1)
+    memo_write = open('memo_v1.4.txt','w')
+    memo_write.write(json.dumps(json_loads))
+    memo_write.close()
+
+# bug: the list isnt sorted by date
+def show_plan():
+    latest_balance = json_loads["easp"][-1].get("balance")
+    today = datetime.datetime.today()
+    json_loads["planning"].sort(key = lambda date:date["date"])
+    show = False
+    print("【计划收入/支出：】")
+    for plan in json_loads["planning"]:
+        the_date = datetime.datetime.strptime(plan.get("date"), "%Y-%m-%d")
+        the_plan = plan.get("plan")
+        the_amount = plan.get("amount")
+        latest_balance = latest_balance + the_amount
+        if the_amount < 0:
+            word = "需支出"
+        else:
+            word = "将收入"
+        if today <= the_date:
+            print("    ",json_loads["planning"].index(plan)+1,the_date.date(), the_plan, word, the_amount, "之后余额剩", round(latest_balance, 2))
+            show = True
+    if not show:
+        print("    暂无任何计划")
+
 ini()
 if json_loads["easp"] == []:
     print("【欢迎使用“钱笔记”，请打开你过去的账单，建立你的第一个时间块】")
     record_easp("c")
-print("最近三条记录的统计信息：")
-total_cal(-3,-3)
-
-show_m = True
-while True:
-    if show_m:
-        print("""
-【已记录的时间块：】""")
-        get_rec_book()
-        print("""
-——————————
+menu = """——————————
 查看一个时间块统计 = s+空格+时间块代码 （s 1）
 查看多个时间块统计 = s+空格+时间块代码-时间块代码 （s 1-3）
 修改现存的时间块 = m+空格+时间块代码（m 1）；
 创建新的时间块 = c （c）
 删除时间块 = d+空格+时间块代码（d 2）
+添加计划块 = + （+）
+删除计划块 = -+空格+计划块代码 （- 3）
 结束程序 = f（f）
-——————————""")
+——————————"""
+# backup file daily everytime the program runs
+today = datetime.date.today().strftime("%Y-%m-%d")
+file_name = "memo_backup" + today + ".txt"
+path = "memo_backup/" + file_name
+shutil.copy2("memo_v1.4.txt", path)
+
+def show_menu():
+    print("最近三条记录的统计信息：")
+    total_cal(-3,-3)
+    show_plan()
+    print("""
+【已记录的时间块：】""")
+    get_rec_book()
+    print(menu)
+show_menu()
+while True:
     uinput = input()
     if re.search("^m", uinput) or re.search("^c", uinput) or re.search("^d", uinput):
         record_easp(uinput)
         memo_write = open('memo_v1.4.txt','w')
         memo_write.write(json.dumps(json_loads))
         memo_write.close()
-        show_m = True
+        show_menu()
     elif re.search("^s", uinput):
         uinput_split = re.split("[\s-]", uinput)
         if re.search("s [0-9]+", uinput) or re.search("s [0-9]+-[0-9]+", uinput):
@@ -417,6 +497,17 @@ while True:
             elif len(uinput_split) == 2:
                 total_cal(uinput_split[1],uinput_split[1])
         else:print("【无效输入（错误代码14）】")
-        show_m = False
-    elif uinput == "f":break
+    elif re.search("\+", uinput) and len(uinput) == 1:
+        edit_plan(uinput)
+        show_menu()
+    elif not re.search("\D", uinput[2:]) and re.search("^- ", uinput):
+        edit_plan(uinput[2:])
+        show_menu()
+    elif uinput == "f":
+        # backup file daily everytime the program closes
+        today = datetime.date.today().strftime("%Y-%m-%d")
+        file_name = "memo_backup" + today + ".txt"
+        path = "memo_backup/" + file_name
+        shutil.copy2("memo_v1.4.txt", path)
+        break
     else:print("【无效输入（错误代码15）】")
