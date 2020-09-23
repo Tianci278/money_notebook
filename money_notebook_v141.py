@@ -4,6 +4,7 @@ import re
 import urllib.request, urllib.parse, urllib.error
 import os
 import shutil
+from language_pack import choose_lan
 
 # get latest forex rate
 def latest_forex(base, target):
@@ -14,7 +15,7 @@ def latest_forex(base, target):
         target_rate = json_base_rate['rates'][target]
         return target_rate
     except:
-        print("【汇率转换失败】")
+        print(message["mg1"])
         return 1
 # return available fx list
 def get_forex_list():
@@ -27,20 +28,33 @@ def get_forex_list():
         forex_list.append("EUR")
         return forex_list
     except:
-        print("【请连接网络】")
+        print(message["mg2"])
         quit()
 
 # initialize the program: create the json file is not exist
 def ini():
     mark = """
 Made with spirit of financial independency by Tianci in Sept 2020;
-使用前请阅读readme_cn
-联系邮箱: tiancizhangmedia@outlook.com
+使用前请阅读readme_cn|Read readme_en before using
+联系邮箱|Email: tiancizhangmedia@outlook.com
 """
     if not os.path.exists("memo_v1.4.txt") or os.path.getsize("memo_v1.4.txt") == 0:
         memo_write = open("memo_v1.4.txt","w")
+        # decide language of the program
+        print("【请选择语言|Please choose a language(CN/EN):】")
+        lan = ""
+        lan_list = ["CN","EN"]
+        while not lan in lan_list:
+            lan = input().upper()
+            if not lan in lan_list:
+                print("【请输入CN或EN|Please enter CN or EN】")
+        # decide base currency
+        if lan == "CN":
+            message = choose_lan("CN")
+        elif lan == "EN":
+            message = choose_lan("EN")
         forex_list = get_forex_list()
-        print("【请从以下列表中选择记账基础货币】")
+        print(message["mg4"])
         print(forex_list)
         in_list = False
         while True:
@@ -48,14 +62,15 @@ Made with spirit of financial independency by Tianci in Sept 2020;
             user_inp3 = input().upper()
             for fx in forex_list:
                 if user_inp3 == fx: in_list = True
-            if in_list == False: print("【你的输入不在列表中，请重新输入】")
-        json_dict = {"easp":[], "projects":[], "planning":[], "base_cur":user_inp3, "lan":"CN"} # easp: earning and spending
+            if in_list == False: print(message["mg5"])
+        json_dict = {"easp":[], "projects":[], "planning":[], "base_cur":user_inp3, "lan":lan} # easp: earning and spending
         memo_write.write(json.dumps(json_dict))
         memo_write.close()
     print(mark)
     memo_read = open("memo_v1.4.txt","r")
     global json_loads
     json_loads = json.loads(memo_read.read())
+
 
 def read_write_projects(rorw,project):
     if rorw == "read":
@@ -76,17 +91,17 @@ def read_write_projects(rorw,project):
 def input_date():
     while True:
         try:
-            print("【请输入开始日期，yyyy-mm-dd：】")
+            print(message["mg6"])
             user_str = input()
             start_date = datetime.datetime.strptime(user_str, "%Y-%m-%d")
-            print("【请输入结束日期，yyyy-mm-dd：】")
+            print(message["mg7"])
             user_str = input()
             end_date = datetime.datetime.strptime(user_str, "%Y-%m-%d")
             if end_date > start_date:
                 break
-            print("【错误输入：结束日期早于开始日期】")
+            print(message["mg8"])
         except:
-            print("【无效输入（错误代码：1）】")
+            print(message["mg9"])
     date_list = []
     date_list.append(start_date.strftime("%Y-%m-%d"))
     date_list.append(end_date.strftime("%Y-%m-%d"))
@@ -94,63 +109,63 @@ def input_date():
 
 def balance_easp():
     base_cur = json_loads.get("base_cur")
-    print("【可使用“+”来综合计算多笔数额，支持货币转换（100 + 200 + -300 GBP）】")
+    print(message["mg10"])
     for t in range(3):
         while True:
             try:
                 if t == 0:
                     correct1 = True
-                    print("【请输入结束日期的余额：】")
+                    print(message["mg11"])
                 elif t == 1:
                     correct1 = True
-                    print("【请输入这段时间的总支出：】")
+                    print(message["mg12"])
                 elif t == 2:
                     correct1 = True
-                    print("【请输入这段时间的总收入：】")
+                    print(message["mg13"])
                 user_inp6 = input()
                 user_inp6_split = re.split(" \+ ", user_inp6)
                 the_amount1 = 0
                 for fg in user_inp6_split:
                     if re.search("[0-9]$", fg) and not re.search("[A-Z]", fg.upper()):
                         if t == 1 and float(fg) > 0:
-                            print("【请输入负数（包括0）】")
+                            print(message["mg14"])
                             correct1 = False
                         if t == 2 and float(fg) < 0:
-                            print("【请输入正数（包括0）】")
+                            print(message["mg15"])
                             correct1 = False
                         the_amount1 = the_amount1 + float(fg)
                     elif re.search("[A-Z]$", fg.upper()) and re.search("^-*[0-9]+", fg) and re.search(" ",fg):
                         fg_split = re.split(" ", fg)
                         forex_list = get_forex_list()
                         if not fg_split[1].upper() in forex_list:
-                            print("【无效的外汇代码，请重新输入】")
+                            print(message["mg16"])
                             correct1 = False
                         if t == 1 and float(fg_split[0]) > 0:
-                            print("【请输入负数（包括0）】")
+                            print(message["mg17"])
                             correct1 = False
                         if t == 2 and float(fg_split[0]) < 0:
-                            print("【请输入正数（包括0）】")
+                            print(message["mg18"])
                             correct1 = False
                         rate = latest_forex(fg_split[1].upper(), base_cur)
                         the_amount1 = the_amount1 + float(fg_split[0]) * rate
-                        print("汇率：", rate,"换汇后：",float(fg_split[0]) * rate)
+                        print(message["mg85"], rate,message["mg86"],float(fg_split[0]) * rate)
                     else:
-                        print("【无效输入（错误代码：2）】")
+                        print(message["mg19"])
                         correct1 = False
             except:
-                print("【无效输入（错误代码：2.1）】")
+                print(message["mg20"])
                 continue
             if correct1:
                 break
         if t == 0:
             json_loads["easp"][-1]["balance"] = the_amount1
-            print("录入余额：", the_amount1)
+            print(message["mg21"], the_amount1)
         elif t == 1:
             json_loads["easp"][-1]["totsp"] = the_amount1
-            print("录入支出：", the_amount1)
+            print(message["mg22"], the_amount1)
         elif t == 2:
             json_loads["easp"][-1]["totea"] = the_amount1
-            print("录入收入：", the_amount1)
+            print(message["mg23"], the_amount1)
 
 def get_rec_book():
     global num_record
@@ -185,36 +200,25 @@ def record_easp(choice):
     elif re.search("^m", user_inp2):
         try:
             target_record = int(user_inp2_split[1])-1
-        except: print("【无效输入（错误代码：3）】")
+        except: print(message["mg24"])
     elif re.search("^d", user_inp2):
         try:
             target_record = int(user_inp2_split[1])-1
             json_loads["easp"].pop(target_record)
             return
         except:
-            print("【无效输入（错误代码：4）】")
+            print(message["mg25"])
             return
     else:
-        print("【无效输入（错误代码：5）】")
+        print(message["mg26"])
         return
     # record project
     if re.search("^c", user_inp2):
         current_dates = start_end_date[0] + "——" + start_end_date[1]
     else:
         current_dates = num_record.get(int(user_inp2_split[1]))
-    print("""
-——————————
-正在编辑：""", current_dates, """
-创建新项目 = 加号+空格+项目名称+空格+数额（+ 吃饭 -100）
-增加项目数额 = 项目代码+空格+数额 （1 100）
-给未来的自己留个备注 = n+空格+备注（n 省着点花）
-删除项目 = d+空格+项目代码 （d 2）
-返回上级目录 = f （f）
-注1：正数为收入，负数为支出；数值默认为基础货币，在数值后+空格+其他货币代码（如2 200 GBP）可将按实时汇率转换为基础货币。
-注2：备注会在下次打开程序的时候出现。
-注3：不需要事无巨细地记录，只记录你认为重要的项目就可以。
-——————————""")
-    print("【你是否想要添加这些：】")
+    print(message["mg27"], current_dates, message["mg28"])
+    print(message["mg29"])
     read_write_projects("read","na")
     while True:
         # creating a dict obj counting existing projects
@@ -225,32 +229,32 @@ def record_easp(choice):
                 if key != "start_date" and key != "end_date" and key != "balance" and key != "totea" and key != "totsp" and key != "note":
                     # check if value negative or positive
                     if value < 0:
-                        eaorsp = "支出"
+                        eaorsp = message["mg87"]
                     elif value == 0:
                         eaorsp = ""
-                    else: eaorsp = "收入"
+                    else: eaorsp = message["mg88"]
                     # giving the current recording
                     print("【",num," ", key," ", eaorsp," ", value,"】", sep="")
                     num_easp[num] = key
                     num = num + 1
         except: pass
         if json_loads["easp"][target_record].get("note") != None:
-            print("【备注：",json_loads["easp"][target_record].get("note"),"】",sep="")
+            print(message["mg30"],json_loads["easp"][target_record].get("note"),message["mg31"],sep="")
         if num_easp == {}:
-            print("【当前列表为空，请添加新项目】")
+            print(message["mg32"])
         user_inp = input()
         user_inp_split = re.split("\s", user_inp)
         if re.search("^[0-9]+", user_inp):
             # input checker
             if len(user_inp_split) != 2 and len(user_inp_split) != 3:
-                print("【无效输入（错误代码：7）】")
+                print(message["mg33"])
                 continue
             rate = 1
             if len(user_inp_split) == 3:
                 try:
                     rate = latest_forex(user_inp_split[2].upper(), base_cur)
                 except:
-                    print("【无效的的外汇代码，请重新输入】")
+                    print(message["mg34"])
                     continue
             try:
                 the_project = num_easp.get(int(user_inp_split[0]))
@@ -258,18 +262,18 @@ def record_easp(choice):
                 base_amount = json_loads["easp"][target_record].get(the_project)
                 the_amount = the_amount + base_amount
                 json_loads["easp"][target_record][the_project] = the_amount
-            except: print("【无效输入（错误代码：8）】")
+            except: print(message["mg35"])
         elif re.search("^\+", user_inp):
             # input checker
             if len(user_inp_split) != 3 and len(user_inp_split) != 4:
-                print("【无效输入（错误代码：9）】")
+                print(message["mg36"])
                 continue
             rate = 1
             if len(user_inp_split) == 4:
                 try:
                     rate = latest_forex(user_inp_split[3].upper(), base_cur)
                 except:
-                    print("【错误的外汇代码，请重新输入】")
+                    print(message["mg37"])
                     continue
             the_project = user_inp_split[1]
             try:
@@ -277,21 +281,21 @@ def record_easp(choice):
                 json_loads["easp"][target_record][the_project] = the_amount
                 read_write_projects("write", user_inp_split[1])
             except:
-                print("无效输入（错误代码：9.1）")
+                print(message["mg38"])
         elif re.search("^d", user_inp):
             try:
                 if len(user_inp_split) != 2:
-                    print("【无效输入（错误代码：10）】")
+                    print(message["mg39"])
                     continue
                 remove_project = num_easp.get(int(user_inp_split[1]))
                 json_loads["easp"][target_record].pop(remove_project)
-            except:print("【无效输入（错误代码：11）】")
+            except:print(message["mg40"])
         elif re.search("^n", user_inp):
             try:
                 json_loads["easp"][target_record]["note"] = ' '.join(user_inp_split[1:])
-            except: print("【无效输入（错误代码：12）】")
+            except: print(message["mg41"])
         elif user_inp == "f": break
-        else: print("【无效输入（错误代码：13）】")
+        else: print(message["mg42"])
 
 # give you a total number from s the start date and e the end date
 def total_cal(s,e):
@@ -308,21 +312,21 @@ def total_cal(s,e):
         sd = json_loads["easp"][target_from].get("start_date")
         ed = json_loads["easp"][target_upto].get("end_date")
     except:
-        print("【超出查询范围】")
+        print(message["mg43"])
         return
     num_iter = target_upto - target_from + 1
     if s == -3:
         num_iter = len(json_loads["easp"])
-    print("【", sd, "——", ed,"】", sep="")
+    print(message["mg44"], sd, message["mg45"], ed,message["mg46"], sep="")
     if s == e:
-        print("【余额：", round(json_loads["easp"][target_from].get("balance"), 2)," ", base_cur,"】", sep="")
+        print(message["mg47"], round(json_loads["easp"][target_from].get("balance"), 2)," ", base_cur,message["mg48"], sep="")
     else:
         sb = json_loads["easp"][target_from].get("balance")
         eb = json_loads["easp"][target_upto].get("balance")
         if float(sb) > float(eb):
-            print("【余额呈下降趋势：",round(float(sb), 2),"—>",round(float(eb), 2),"】",sep="")
+            print(message["mg49"],round(float(sb), 2),"—>",round(float(eb), 2),message["mg50"],sep="")
         elif float(sb) < float(eb):
-            print("【余额呈上升趋势",round(float(sb), 2),"—>",round(float(eb), 2),"】",sep="")
+            print(message["mg51"],round(float(sb), 2),"—>",round(float(eb), 2),message["mg52"],sep="")
     # total spending
     tot_totsp = 0
     for iter in range(num_iter):
@@ -331,7 +335,7 @@ def total_cal(s,e):
     target_from = int(s) - 1
     if s == -3:
         target_from = -len(json_loads["easp"])
-    print("【总支出：", round(tot_totsp, 2)," ", base_cur, "】",sep="")
+    print(message["mg53"], round(tot_totsp, 2)," ", base_cur, message["mg54"],sep="")
     # total each project spending
     sd = datetime.datetime.strptime(sd, "%Y-%m-%d")
     ed = datetime.datetime.strptime(ed, "%Y-%m-%d")
@@ -353,11 +357,11 @@ def total_cal(s,e):
         if float(kvtot[1]) < 0:
             per = str(int(kvtot[1]/tot_totsp*100)) + "%"
             perday = kvtot[1]/int(duration[0])
-            if kvtot[0] == "食物":
+            if kvtot[0] == message["mg55"]:
                 eg_num = kvtot[1]/tot_totsp
-            print("    ","其中"," ",kvtot[0]," ","一共",int(kvtot[1])," ","平均每月",int(perday*30)," ","占总支出的",per,sep="")
+            print("    ",message["mg56"]," ",kvtot[0]," ",message["mg57"],int(kvtot[1])," ",message["mg58"],int(perday*30)," ",message["mg59"],per,sep="")
     try:
-        print("    ","你的恩格尔系数为：",round(eg_num,3))
+        print("    ",message["mg60"],round(eg_num,3))
     except:pass
     # total earning
     tot_totea = 0
@@ -367,18 +371,18 @@ def total_cal(s,e):
     target_from = int(s) - 1
     if s == -3:
         target_from = -len(json_loads["easp"])
-    print("【总收入：", round(tot_totea, 2)," ", base_cur, "】",sep="")
+    print(message["mg61"], round(tot_totea, 2)," ", base_cur, message["mg62"],sep="")
     # total each project earning
     sorted_dict = sorted(tot_dict.items(), key = lambda v:v[1], reverse=True)
     for kvtot in sorted_dict:
         if float(kvtot[1]) > 0:
             per = str(int(kvtot[1]/tot_totea*100)) + "%"
             perday = kvtot[1]/int(duration[0])
-            print("    ","其中"," ",kvtot[0]," ","一共",int(kvtot[1])," ","平均每月",int(perday*30)," ","占总收入的",per,sep="")
+            print("    ",message["mg63"]," ",kvtot[0]," ",message["mg64"],int(kvtot[1])," ",message["mg65"],int(perday*30)," ",message["mg66"],per,sep="")
     # get note
     note = json_loads["easp"][target_upto].get("note")
-    if note == None: note = "无（请在记录时间块时添加备注）"
-    print("【过去的你给你发来信息：】")
+    if note == None: note = message["mg67"]
+    print(message["mg68"])
     print("    ",note)
 
 def if_date(date):
@@ -396,11 +400,11 @@ def edit_plan(inp):
         plan_dict = {}
         for t in range(3):
             if t == 0:
-                print("【请输入一个未来的日期：】")
+                print(message["mg69"])
             if t == 1:
-                print("【请输入计划块名称：】")
+                print(message["mg70"])
             if t == 2:
-                print("【请输入数额（正数为计划收入，负数为计划支出）】：")
+                print(message["mg71"])
             while True:
                 user_input = input()
                 if t == 0 and if_date(user_input):
@@ -410,9 +414,9 @@ def edit_plan(inp):
                         plan_dict["date"] = the_date
                         break
                     else:
-                        print("【请输入今天及以后的日期】")
+                        print(message["mg72"])
                 elif t == 0:
-                    print("【无效的日期输入，请重试】")
+                    print(message["mg73"])
                 if t == 1:
                     plan_dict["plan"] = user_input
                     break
@@ -421,7 +425,7 @@ def edit_plan(inp):
                     plan_dict["amount"] = amt
                     break
                 elif t == 2:
-                    print("【请输入数字】")
+                    print(message["mg74"])
         json_loads["planning"].append(plan_dict)
     # it deletes the wrong record
     else:
@@ -432,52 +436,51 @@ def edit_plan(inp):
 
 # bug: the list isnt sorted by date
 def show_plan():
-    latest_balance = json_loads["easp"][-1].get("balance")
+    if len(json_loads["easp"]) == 0:
+        print(message["mg89"])
+        latest_balance = 0
+    else:
+        latest_balance = json_loads["easp"][-1].get("balance")
     today = datetime.datetime.today()
     json_loads["planning"].sort(key = lambda date:date["date"])
     show = False
-    print("【计划收入/支出：】")
+    print(message["mg75"])
     for plan in json_loads["planning"]:
         the_date = datetime.datetime.strptime(plan.get("date"), "%Y-%m-%d")
         the_plan = plan.get("plan")
         the_amount = plan.get("amount")
         latest_balance = latest_balance + the_amount
         if the_amount < 0:
-            word = "需支出"
+            word = message["mg76"]
         else:
-            word = "将收入"
+            word = message["mg77"]
         if today <= the_date:
             print("    ",json_loads["planning"].index(plan)+1,the_date.date(), the_plan, word, the_amount, "之后余额剩", round(latest_balance, 2))
             show = True
     if not show:
-        print("    暂无任何计划")
+        print(message["mg78"])
+
+
+
 
 ini()
+message = choose_lan(json_loads["lan"])
+# first open program
 if json_loads["easp"] == []:
-    print("【欢迎使用“钱笔记”，请打开你过去的账单，建立你的第一个时间块】")
+    print(message["mg79"])
     record_easp("c")
-menu = """——————————
-查看一个时间块统计 = s+空格+时间块代码 （s 1）
-查看多个时间块统计 = s+空格+时间块代码-时间块代码 （s 1-3）
-修改现存的时间块 = m+空格+时间块代码（m 1）；
-创建新的时间块 = c （c）
-删除时间块 = d+空格+时间块代码（d 2）
-添加计划块 = + （+）
-删除计划块 = -+空格+计划块代码 （- 3）
-结束程序 = f（f）
-——————————"""
+menu = message["mg80"]
 # backup file daily everytime the program runs
 today = datetime.date.today().strftime("%Y-%m-%d")
-file_name = "memo_backup" + today + ".txt"
+file_name = "memo_v1.4_backup" + today + "Open" + ".txt"
 path = "memo_backup/" + file_name
 shutil.copy2("memo_v1.4.txt", path)
 
 def show_menu():
-    print("最近三条记录的统计信息：")
+    print(message["mg81"])
     total_cal(-3,-3)
     show_plan()
-    print("""
-【已记录的时间块：】""")
+    print(message["mg82"])
     get_rec_book()
     print(menu)
 show_menu()
@@ -496,7 +499,7 @@ while True:
                 total_cal(uinput_split[1],uinput_split[2])
             elif len(uinput_split) == 2:
                 total_cal(uinput_split[1],uinput_split[1])
-        else:print("【无效输入（错误代码14）】")
+        else:print(message["mg83"])
     elif re.search("\+", uinput) and len(uinput) == 1:
         edit_plan(uinput)
         show_menu()
@@ -506,8 +509,8 @@ while True:
     elif uinput == "f":
         # backup file daily everytime the program closes
         today = datetime.date.today().strftime("%Y-%m-%d")
-        file_name = "memo_backup" + today + ".txt"
+        file_name = "memo_v1.4_backup" + today + "Close" + ".txt"
         path = "memo_backup/" + file_name
         shutil.copy2("memo_v1.4.txt", path)
         break
-    else:print("【无效输入（错误代码15）】")
+    else:print(message["mg84"])
