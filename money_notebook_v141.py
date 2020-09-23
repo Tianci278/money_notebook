@@ -471,6 +471,7 @@ if json_loads["easp"] == []:
     record_easp("c")
 menu = message["mg80"]
 # backup file daily everytime the program runs
+os.makedirs("memo_backup", exist_ok=True)
 today = datetime.date.today().strftime("%Y-%m-%d")
 file_name = "memo_v1.4_backup" + today + "Open" + ".txt"
 path = "memo_backup/" + file_name
@@ -508,6 +509,7 @@ while True:
         show_menu()
     elif uinput == "f":
         # backup file daily everytime the program closes
+        os.makedirs("memo_backup", exist_ok=True)
         today = datetime.date.today().strftime("%Y-%m-%d")
         file_name = "memo_v1.4_backup" + today + "Close" + ".txt"
         path = "memo_backup/" + file_name
